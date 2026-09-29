@@ -11,3 +11,4 @@ endif()
 
 add_subdirectory(experiments/p1_hello_win32)
 add_subdirectory(experiments/p2_window_mgmt)
+add_subdirectory(experiments/p3_opacity)
