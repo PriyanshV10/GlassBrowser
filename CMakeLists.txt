@@ -10,3 +10,4 @@ if(NOT CMAKE_SIZEOF_VOID_P EQUAL 8)
 endif()
 
 add_subdirectory(experiments/p1_hello_win32)
+add_subdirectory(experiments/p2_window_mgmt)
