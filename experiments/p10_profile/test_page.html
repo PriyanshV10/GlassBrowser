@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>GlassBrowser transparency test</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: "Segoe UI", sans-serif;
+            background: #fff;
+            color: #111;
+        }
+
+        header {
+            position: sticky;
+            top: 0;
+            z-index: 2;
+            background: #222;
+            color: #fff;
+            padding: 8px 16px;
+            display: flex;
+            gap: 24px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        #fps {
+            font: 700 20px Consolas, monospace;
+            min-width: 120px;
+        }
+
+        main {
+            padding: 16px;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .row {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            align-items: center;
+            margin: 12px 0;
+        }
+
+        .swatch {
+            width: 120px;
+            height: 70px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+        }
+
+        .spin {
+            width: 90px;
+            height: 90px;
+            animation: spin 3s linear infinite;
+            background: linear-gradient(45deg, #e63946, #457b9d, #2a9d8f);
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .checker {
+            height: 80px;
+            background: repeating-conic-gradient(#000 0% 25%, #fff 0% 50%) 50% / 40px 40px;
+        }
+
+        canvas, video {
+            border: 1px solid #888;
+            background: #000;
+            max-width: 100%;
+        }
+
+        p {
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <span id="fps">FPS: --</span>
+        <label><input type="checkbox" id="stress"> Stress (3000 particles)</label>
+        <span>Scroll this page while changing opacity</span>
+    </header>
+    <main>
+        <h2>1. Contrast and blending</h2>
+        <div class="row">
+            <div class="swatch" style="background:#fff;color:#000;border:1px solid #888">Black on white</div>
+            <div class="swatch" style="background:#000;color:#fff">White on black</div>
+            <div class="swatch" style="background:#e63946;color:#fff">White on red</div>
+            <div class="swatch" style="background:#457b9d;color:#fff">White on blue</div>
+        </div>
+        <div class="checker"></div>
+
+        <h2>2. CSS animation</h2>
+        <div class="row"><div class="spin"></div></div>
+
+        <h2>3. Canvas animation</h2>
+        <canvas id="cv" width="640" height="240"></canvas>
+
+        <h2>4. Video element (generated from the canvas, no network)</h2>
+        <video id="gen" width="320" height="120" muted playsinline></video>
+
+        <h2>5. Real video (paste a direct .webm URL here, or open YouTube instead)</h2>
+        <div class="row">
+            <input id="url" size="50" placeholder="https://.../video.webm">
+            <button id="load">Load</button>
+        </div>
+        <video id="real" width="480" height="270" controls></video>
+
+        <h2>6. Native popups (these are separate windows)</h2>
+        <div class="row">
+            <select>
+                <option>Option one</option>
+                <option>Option two</option>
+                <option>Option three</option>
+            </select>
+            <input placeholder="Right-click here for the context menu">
+        </div>
+
+        <h2>7. Long text (scroll test)</h2>
+        <div id="text"></div>
+    </main>
+    <script>
+        // --- FPS counter ---
+        const fpsEl = document.getElementById('fps');
+        let frames = 0, last = performance.now();
+        function tick(now) {
+        frames++;
+        if (now - last >= 500) {
+        fpsEl.textContent = 'FPS: ' + Math.round(frames * 1000 / (now - last));
+        frames = 0; last = now;
+        }
+        requestAnimationFrame(tick);
+        }
+        requestAnimationFrame(tick);
+
+        // --- Canvas particles ---
+        const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+        let particles = [];
+        function seed(n) {
+        particles = Array.from({ length: n }, () => ({
+        x: Math.random() * cv.width, y: Math.random() * cv.height,
+        vx: (Math.random() - 0.5) * 4, vy: (Math.random() - 0.5) * 4,
+        h: Math.random() * 360 }));
+        }
+        seed(200);
+        document.getElementById('stress').onchange = e => seed(e.target.checked ? 3000 : 200);
+        function draw() {
+        ctx.fillStyle = 'rgba(0,0,0,0.25)';
+        ctx.fillRect(0, 0, cv.width, cv.height);
+        for (const p of particles) {
+        p.x += p.vx; p.y += p.vy;
+        if (p.x < 0 || p.x > cv.width) p.vx *= -1;
+        if (p.y < 0 || p.y > cv.height) p.vy *= -1;
+        ctx.fillStyle = `hsl(${p.h},90%,60%)`;
+        ctx.fillRect(p.x, p.y, 3, 3);
+        }
+        requestAnimationFrame(draw);
+        }
+        draw();
+
+        // --- Generated video: a <video> playing the canvas as a media stream ---
+        const gen = document.getElementById('gen');
+        gen.srcObject = cv.captureStream(30);
+        gen.play().catch(() => {});
+
+        // --- Real video loader ---
+        const real = document.getElementById('real');
+        document.getElementById('load').onclick = () => {
+        const u = document.getElementById('url').value.trim();
+        if (u) { real.src = u; real.play().catch(() => {}); }
+        };
+
+        // --- Long text ---
+        const text = document.getElementById('text');
+        for (let i = 1; i <= 80; i++) {
+        const p = document.createElement('p');
+        p.textContent = 'Paragraph ' + i + '. The quick brown fox jumps over the lazy dog. ' +
+        'Scrolling at different opacity levels shows whether compositing keeps up.';
+        text.appendChild(p);
+        }
+    </script>
+</body>
+</html>

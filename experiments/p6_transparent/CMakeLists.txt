@@ -19,7 +19,7 @@ add_library(${CEF_TARGET} SHARED
     main_window.cpp
     main_window.h
     opacity_controller.h
-)
+ "p6_transparent/browser_app.cpp" "p6_transparent/browser_app.h" "p6_transparent/browser_client.cpp" "p6_transparent/browser_client.h" "p6_transparent/main.cpp" "p6_transparent/main_window.cpp" "p6_transparent/main_window.h" "p6_transparent/opacity_controller.h")
 SET_LIBRARY_TARGET_PROPERTIES(${CEF_TARGET})
 
 COPY_SINGLE_FILE(${CEF_TARGET}
